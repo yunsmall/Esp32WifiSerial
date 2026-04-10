@@ -30,7 +30,7 @@ ConfigSerialDataInterfaceHandler::ConfigSerialDataInterfaceHandler(
 {
 }
 
-void ConfigSerialDataInterfaceHandler::on_data_received(const usbipdcpp::data_type &data) {
+void ConfigSerialDataInterfaceHandler::on_data_received(usbipdcpp::data_type &&data) {
     if (should_immediately_stop) return;
 
     ESP_LOGI(TAG, "Received %d bytes: %.*s", (int)data.size(), (int)data.size(), (char *)data.data());

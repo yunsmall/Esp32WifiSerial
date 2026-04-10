@@ -29,7 +29,7 @@ public:
 
     void on_new_connection(usbipdcpp::Session &current_session, usbipdcpp::error_code &ec) override;
     void on_disconnection(usbipdcpp::error_code &ec) override;
-    void on_data_received(const usbipdcpp::data_type &data) override;
+    void on_data_received(usbipdcpp::data_type &&data) override;
 
     std::atomic_bool should_immediately_stop = false;
     WifiSerialManager &manager;

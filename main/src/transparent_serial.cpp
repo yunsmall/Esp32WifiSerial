@@ -84,7 +84,7 @@ void TransparentSerialDataInterfaceHandler::on_disconnection(usbipdcpp::error_co
     CdcAcmDataInterfaceHandler::on_disconnection(ec);
 }
 
-void TransparentSerialDataInterfaceHandler::on_data_received(const usbipdcpp::data_type &data) {
+void TransparentSerialDataInterfaceHandler::on_data_received(usbipdcpp::data_type &&data) {
     if (should_immediately_stop || !manager.uart_initialized) return;
 
     manager.send_data(data.data(), data.size());

@@ -25,7 +25,7 @@ class ConfigSerialDataInterfaceHandler : public usbipdcpp::CdcAcmDataInterfaceHa
 public:
     ConfigSerialDataInterfaceHandler(usbipdcpp::UsbInterface &iface, usbipdcpp::StringPool &sp, WifiSerialManager &mgr);
 
-    void on_data_received(const usbipdcpp::data_type &data) override;
+    void on_data_received(usbipdcpp::data_type &&data) override;
     void on_new_connection(usbipdcpp::Session &current_session, usbipdcpp::error_code &ec) override;
     void on_disconnection(usbipdcpp::error_code &ec) override;
 
