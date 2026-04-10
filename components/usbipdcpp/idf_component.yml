@@ -1,0 +1,7 @@
+## IDF Component Manager Manifest File
+dependencies:
+  ## Required IDF version
+  idf:
+    version: '>=4.1.0'
+  javivilarroig/spdlog: ^1.14.1
+  espressif/asio: ^1.32.0

@@ -1,0 +1,39 @@
+menu "WiFi Serial Configuration"
+
+    config WIFI_SERIAL_SSID
+        string "WiFi SSID"
+        default "MyWiFi"
+        help
+            WiFi SSID to connect to.
+
+    config WIFI_SERIAL_PASSWORD
+        string "WiFi Password"
+        default "MyPassword"
+        help
+            WiFi password.
+
+    config WIFI_SERIAL_PORT
+        int "USBIP Server Port"
+        default 3240
+        help
+            USBIP server listening port.
+
+    config SERIAL_TX_PIN
+        int "Serial TX Pin"
+        default 4
+        help
+            GPIO pin for serial TX.
+
+    config SERIAL_RX_PIN
+        int "Serial RX Pin"
+        default 5
+        help
+            GPIO pin for serial RX.
+
+    config SERIAL_BAUD_RATE
+        int "Serial Baud Rate"
+        default 115200
+        help
+            Default serial baud rate.
+
+endmenu
