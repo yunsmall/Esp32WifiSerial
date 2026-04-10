@@ -56,9 +56,17 @@ void TransparentSerialDataInterfaceHandler::on_new_connection(usbipdcpp::Session
             if (xQueueReceive(manager.uart_event_queue, &event, pdMS_TO_TICKS(100))) {
                 if (should_immediately_stop) break;
                 if (event.type == UART_DATA) {
-                    int len = uart_read_bytes(manager.uart_port, data, event.size, pdMS_TO_TICKS(100));
-                    if (len > 0) {
-                        send_data(usbipdcpp::data_type(data, data + len));
+                    // 循环读取直到读完所有数据
+                    size_t remaining = event.size;
+                    while (remaining > 0) {
+                        size_t to_read = remaining > sizeof(data) ? sizeof(data) : remaining;
+                        int len = uart_read_bytes(manager.uart_port, data, to_read, pdMS_TO_TICKS(100));
+                        if (len > 0) {
+                            send_data(usbipdcpp::data_type(data, data + len));
+                            remaining -= len;
+                        } else {
+                            break;
+                        }
                     }
                 }
             } else if (should_immediately_stop) {
