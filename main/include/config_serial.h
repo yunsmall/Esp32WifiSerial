@@ -16,7 +16,6 @@ public:
 
     void on_set_control_line_state(const usbipdcpp::ControlSignalState &state) override;
 
-    class ConfigSerialDataInterfaceHandler *data_handler = nullptr;
     WifiSerialManager &manager;
 };
 

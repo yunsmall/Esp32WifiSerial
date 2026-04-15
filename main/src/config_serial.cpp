@@ -18,7 +18,7 @@ ConfigSerialCommunicationInterfaceHandler::ConfigSerialCommunicationInterfaceHan
 
 void ConfigSerialCommunicationInterfaceHandler::on_set_control_line_state(const usbipdcpp::ControlSignalState &state) {
     SPDLOG_INFO("Config serial - Control line: DTR={}, RTS={}", state.dtr, state.rts);
-    if (state.dtr && data_handler) {
+    if (state.dtr && get_data_handler()) {
         send_serial_state_notification(static_cast<std::uint16_t>(usbipdcpp::CdcAcmSerialState::DCD) |
                                        static_cast<std::uint16_t>(usbipdcpp::CdcAcmSerialState::DSR));
     }

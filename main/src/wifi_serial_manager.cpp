@@ -57,7 +57,8 @@ std::shared_ptr<usbipdcpp::UsbDevice> WifiSerialManager::create_config_device(us
 
     config_comm_handler = ifaces[0].with_handler<ConfigSerialCommunicationInterfaceHandler>(sp, *this);
     config_data_handler = ifaces[1].with_handler<ConfigSerialDataInterfaceHandler>(sp, *this);
-    config_comm_handler->data_handler = config_data_handler.get();
+    config_comm_handler->set_data_handler(config_data_handler.get());
+    config_data_handler->set_comm_handler(config_comm_handler.get());
 
     auto device = std::make_shared<UsbDevice>(UsbDevice{
         .path = "/serial/config", .busid = "1-1", .bus_num = 1, .dev_num = 1,
@@ -92,7 +93,8 @@ std::shared_ptr<usbipdcpp::UsbDevice> WifiSerialManager::create_transparent_devi
 
     transparent_comm_handler = ifaces[0].with_handler<TransparentSerialCommunicationInterfaceHandler>(sp, *this);
     transparent_data_handler = ifaces[1].with_handler<TransparentSerialDataInterfaceHandler>(sp, *this);
-    transparent_comm_handler->data_handler = transparent_data_handler.get();
+    transparent_comm_handler->set_data_handler(transparent_data_handler.get());
+    transparent_data_handler->set_comm_handler(transparent_comm_handler.get());
 
     auto device = std::make_shared<UsbDevice>(UsbDevice{
         .path = "/serial/transparent", .busid = "1-2", .bus_num = 1, .dev_num = 2,

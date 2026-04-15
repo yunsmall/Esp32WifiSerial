@@ -33,7 +33,7 @@ void TransparentSerialCommunicationInterfaceHandler::on_set_line_coding(const us
 
 void TransparentSerialCommunicationInterfaceHandler::on_set_control_line_state(const usbipdcpp::ControlSignalState &state) {
     ESP_LOGI(TAG, "Control line: DTR=%d, RTS=%d", state.dtr, state.rts);
-    if (state.dtr && data_handler) {
+    if (state.dtr) {
         send_serial_state_notification(static_cast<std::uint16_t>(usbipdcpp::CdcAcmSerialState::DCD) |
                                        static_cast<std::uint16_t>(usbipdcpp::CdcAcmSerialState::DSR));
     }
@@ -62,7 +62,7 @@ void TransparentSerialDataInterfaceHandler::on_new_connection(usbipdcpp::Session
                         size_t to_read = remaining > sizeof(data) ? sizeof(data) : remaining;
                         int len = uart_read_bytes(manager.uart_port, data, to_read, pdMS_TO_TICKS(100));
                         if (len > 0) {
-                            send_data(usbipdcpp::data_type(data, data + len));
+                            send_data_blocking(data, len);
                             remaining -= len;
                         } else {
                             break;
@@ -88,4 +88,8 @@ void TransparentSerialDataInterfaceHandler::on_data_received(usbipdcpp::data_typ
     if (should_immediately_stop || !manager.uart_initialized) return;
 
     manager.send_data(data.data(), data.size());
+}
+
+void TransparentSerialDataInterfaceHandler::on_rts_changed(bool rts) {
+    ESP_LOGI(TAG, "RTS changed: %d", rts);
 }

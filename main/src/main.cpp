@@ -76,6 +76,11 @@ static void init_wifi() {
 }
 
 static int thread_main() {
+    // 配置pthread默认栈大小
+    esp_pthread_cfg_t pthread_cfg = esp_pthread_get_default_config();
+    pthread_cfg.stack_size = 8 * 1024;  // 8KB栈
+    esp_pthread_set_cfg(&pthread_cfg);
+
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -103,6 +108,11 @@ static int thread_main() {
 
     // 启动服务器
     usbipdcpp::Server server;
+    server.set_before_thread_create_callback([](usbipdcpp::ThreadPurpose) {
+        esp_pthread_cfg_t cfg = esp_pthread_get_default_config();
+        cfg.stack_size = 8 * 1024;
+        esp_pthread_set_cfg(&cfg);
+    });
     server.add_device(std::move(config_dev));
     server.add_device(std::move(trans_dev));
 
