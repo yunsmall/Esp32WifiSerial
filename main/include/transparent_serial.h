@@ -3,6 +3,8 @@
 #include <virtual_device/CdcAcmVirtualInterfaceHandler.h>
 #include <atomic>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 
 namespace usbipdcpp {
     class Session;
@@ -35,4 +37,8 @@ public:
     std::atomic_bool host_ready_to_receive = false;
     WifiSerialManager &manager;
     std::thread uart_receive_thread;
+
+private:
+    std::mutex host_rts_mutex_;
+    std::condition_variable host_rts_cv_;
 };
