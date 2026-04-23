@@ -1,30 +1,39 @@
 # WiFi Serial for ESP32
 
-USBIP-based WiFi serial port transparent transmission for ESP32.
+[中文文档](README-zh.md)
+
+USBIP-based WiFi serial port transparent transmission for ESP32-S3. Creates virtual serial ports over WiFi that behave like local USB serial devices.
 
 ## Features
 
-- Creates two virtual serial ports via USBIP protocol
-- **Config Serial (busid 1-1)**: Configure TX/RX pins remotely
-- **Transparent Serial (busid 1-2)**: Transparent data forwarding to physical UART
-- WiFi connectivity with automatic reconnection
-- Runtime pin reconfiguration
+- **Two Virtual Serial Ports** via USBIP protocol
+  - Config Serial (busid 1-1): Remote configuration interface
+  - Transparent Serial (busid 1-2): Data forwarding to physical UART
+- **Hardware Flow Control**: RTS/CTS support
+- **Runtime Configuration**: Change pins without reflashing
+- **Auto Reconnection**: WiFi disconnect recovery
+- **Low Memory Footprint**: Optimized for embedded systems
 
 ## Requirements
 
 - ESP-IDF v5.0+
-- USBIP client on host machine (e.g., `usbipd-win` on Windows, `linux-usbip` on Linux)
+- ESP32-S3 development board
+- USBIP client on host:
+  - Windows: [usbipd-win](https://github.com/dorssel/usbipd-win)
+  - Linux: `linux-usbip` package
 
 ## Configuration
 
-Configure via `idf.py menuconfig` or edit `sdkconfig`:
+Configure via `idf.py menuconfig` or edit `sdkconfig.defaults`:
 
-- WiFi SSID: `CONFIG_WIFI_SERIAL_SSID`
-- WiFi Password: `CONFIG_WIFI_SERIAL_PASSWORD`
-- Server Port: `CONFIG_WIFI_SERIAL_PORT` (default: 3240)
-- Default TX Pin: `CONFIG_SERIAL_TX_PIN` (default: 4)
-- Default RX Pin: `CONFIG_SERIAL_RX_PIN` (default: 5)
-- Default Baud Rate: `CONFIG_SERIAL_BAUD_RATE` (default: 115200)
+| Option | Description | Default |
+|--------|-------------|---------|
+| `CONFIG_WIFI_SERIAL_SSID` | WiFi SSID | - |
+| `CONFIG_WIFI_SERIAL_PASSWORD` | WiFi Password | - |
+| `CONFIG_WIFI_SERIAL_PORT` | USBIP Server Port | 3240 |
+| `CONFIG_SERIAL_TX_PIN` | Default TX Pin | 4 |
+| `CONFIG_SERIAL_RX_PIN` | Default RX Pin | 5 |
+| `CONFIG_SERIAL_BAUD_RATE` | Default Baud Rate | 115200 |
 
 ## Usage
 
@@ -32,62 +41,71 @@ Configure via `idf.py menuconfig` or edit `sdkconfig`:
 
 ```bash
 idf.py build
-idf.py flash monitor
+idf.py -p <PORT> flash monitor
 ```
 
-### 2. Attach USBIP Device on Host
+### 2. Connect USBIP Devices
 
-On Windows (using usbipd-win):
+**Windows (PowerShell as Administrator):**
 ```powershell
 usbipd attach --remote <ESP32_IP> --busid 1-1
 usbipd attach --remote <ESP32_IP> --busid 1-2
 ```
 
-On Linux:
+**Linux:**
 ```bash
+sudo modprobe vhci-hcd
 usbip attach --remote <ESP32_IP> --busid 1-1
 usbip attach --remote <ESP32_IP> --busid 1-2
 ```
 
 ### 3. Config Serial Commands
 
-Open the config serial port with any terminal program (e.g., PuTTY, minicom).
-
-Commands (case-insensitive):
+Open the config serial port with any terminal program.
 
 | Command | Description |
 |---------|-------------|
-| `SET TX <pin>` | Set TX pin |
-| `SET RX <pin>` | Set RX pin |
-| `GET` | Get current TX/RX pins |
-| `HELP` | Show help message |
+| `set tx <pin>` | Set TX pin |
+| `set rx <pin>` | Set RX pin |
+| `set rts <pin>` | Set RTS pin (-1 to disable) |
+| `set cts <pin>` | Set CTS pin (-1 to disable) |
+| `set flow <0\|1>` | Enable/disable hardware flow control |
+| `get` | Get current configuration |
+| `help` | Show help message |
 
 Example:
 ```
-SET TX 4
-OK
-SET RX 5
-OK
-GET
-TX:4 RX:5
+set tx 4
+ok
+set rx 5
+ok
+set rts 6
+ok
+set cts 7
+ok
+set flow 1
+ok
+get
+tx:4 rx:5 rts:6 cts:7 flow:1
 ```
 
 ### 4. Transparent Serial
 
-The transparent serial port forwards data between host and physical UART.
+The transparent serial port forwards data bidirectionally between host and physical UART:
 
-- Baud rate and other serial parameters are automatically configured by host
-- Data sent to this port is forwarded to UART TX
-- Data received from UART RX is sent back to host
+- Host → Transparent Serial → UART TX
+- UART RX → Transparent Serial → Host
+- Baud rate, data bits, parity, stop bits are configured by host software
+- Hardware flow control (RTS/CTS) when enabled
 
 ## Pin Restrictions (ESP32-S3)
 
-- GPIO 26-37: SPI Flash/PSRAM related (not available on most boards)
-- GPIO 0: Boot pin, use with caution
-- GPIO 45-46: Strapping pins, check board configuration
-- Power pins: VDD3P3, VDD3P3_RTC, VDD_SPI, VDD3P3_CPU, VDDA, GND
-
-Note: Unlike ESP32, ESP32-S3 GPIO 34-39 can be used as output.
+| GPIO | Notes |
+|------|-------|
+| 0 | Boot pin, use with caution |
+| 26-37 | SPI Flash/PSRAM (usually unavailable) |
+| 45-46 | Strapping pins |
+| 34-39 | Can be used as output (unlike ESP32) |
 
 ## Architecture
 

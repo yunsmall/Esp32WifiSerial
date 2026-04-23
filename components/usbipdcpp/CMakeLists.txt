@@ -20,6 +20,7 @@ target_compile_definitions(
         ${COMPONENT_LIB} PRIVATE
         SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO
         NDEBUG
+        USBIPDCPP_MAX_TRANSFER_BUFFER_SIZE=32768
 )
 
 target_compile_options(${COMPONENT_LIB} PRIVATE

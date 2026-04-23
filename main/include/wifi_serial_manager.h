@@ -12,6 +12,7 @@
 namespace usbipdcpp {
     class UsbDevice;
     class StringPool;
+    class SimpleVirtualDeviceHandler;
 }
 
 // 引脚验证函数类型，返回true表示可用
@@ -27,10 +28,13 @@ public:
     // 共享状态
     int tx_pin = 4;
     int rx_pin = 5;
+    int rts_pin = -1;  // UART RTS输出引脚，-1表示禁用
+    int cts_pin = -1;  // UART CTS输入引脚，-1表示禁用
     int baud_rate = 115200;
     int data_bits = 8;
     int stop_bits = 1;
     int parity = 0;
+    bool flow_control = false;  // 是否启用硬件流控
     std::mutex mutex;
 
     uart_port_t uart_port = UART_NUM_1;
@@ -40,12 +44,18 @@ public:
     // 引脚验证器
     PinValidator tx_validator;
     PinValidator rx_validator;
+    PinValidator rts_validator;
+    PinValidator cts_validator;
 
     // handler
     std::shared_ptr<ConfigSerialCommunicationInterfaceHandler> config_comm_handler;
     std::shared_ptr<ConfigSerialDataInterfaceHandler> config_data_handler;
     std::shared_ptr<TransparentSerialCommunicationInterfaceHandler> transparent_comm_handler;
     std::shared_ptr<TransparentSerialDataInterfaceHandler> transparent_data_handler;
+
+    // device handler
+    std::shared_ptr<usbipdcpp::SimpleVirtualDeviceHandler> config_device_handler;
+    std::shared_ptr<usbipdcpp::SimpleVirtualDeviceHandler> transparent_device_handler;
 
     WifiSerialManager(PinValidator tx_val = nullptr, PinValidator rx_val = nullptr);
 

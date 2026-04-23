@@ -24,18 +24,21 @@ void WifiSerialManager::init_uart() {
     cfg.data_bits = UART_DATA_8_BITS;
     cfg.parity = UART_PARITY_DISABLE;
     cfg.stop_bits = UART_STOP_BITS_1;
-    cfg.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
+    cfg.flow_ctrl = flow_control ? UART_HW_FLOWCTRL_CTS_RTS : UART_HW_FLOWCTRL_DISABLE;
     cfg.source_clk = UART_SCLK_DEFAULT;
 
-    uart_driver_install(uart_port, 2048, 2048, 20, &uart_event_queue, 0);
+    uart_driver_install(uart_port, 8192, 8192, 40, &uart_event_queue, 0);
     uart_param_config(uart_port, &cfg);
-    uart_set_pin(uart_port, tx_pin, rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    uart_set_pin(uart_port, tx_pin, rx_pin,
+                 flow_control ? rts_pin : UART_PIN_NO_CHANGE,
+                 flow_control ? cts_pin : UART_PIN_NO_CHANGE);
 
     current_tx_ = tx_pin;
     current_rx_ = rx_pin;
     uart_initialized = true;
 
-    ESP_LOGI(TAG, "UART init: TX=%d RX=%d baud=%d", tx_pin, rx_pin, baud_rate);
+    ESP_LOGI(TAG, "UART init: TX=%d RX=%d RTS=%d CTS=%d baud=%d flow=%d",
+             tx_pin, rx_pin, rts_pin, cts_pin, baud_rate, flow_control);
 }
 
 std::shared_ptr<usbipdcpp::UsbDevice> WifiSerialManager::create_config_device(usbipdcpp::StringPool &sp) {
@@ -57,6 +60,7 @@ std::shared_ptr<usbipdcpp::UsbDevice> WifiSerialManager::create_config_device(us
 
     config_comm_handler = ifaces[0].with_handler<ConfigSerialCommunicationInterfaceHandler>(sp, *this);
     config_data_handler = ifaces[1].with_handler<ConfigSerialDataInterfaceHandler>(sp, *this);
+    config_data_handler->set_tx_buffer_capacity(4096);  // 4KB for config serial
     config_comm_handler->set_data_handler(config_data_handler.get());
     config_data_handler->set_comm_handler(config_comm_handler.get());
 
@@ -69,7 +73,9 @@ std::shared_ptr<usbipdcpp::UsbDevice> WifiSerialManager::create_config_device(us
         .ep0_in = UsbEndpoint::get_default_ep0_in(),
         .ep0_out = UsbEndpoint::get_default_ep0_out(),
     });
-    device->with_handler<SimpleVirtualDeviceHandler>(sp);
+    config_device_handler = device->with_handler<SimpleVirtualDeviceHandler>(sp);
+    config_device_handler->change_string_product(L"WiFi Serial Config");
+    config_device_handler->change_string_serial(L"WIFI-SERIAL-CFG");
 
     return device;
 }
@@ -93,6 +99,7 @@ std::shared_ptr<usbipdcpp::UsbDevice> WifiSerialManager::create_transparent_devi
 
     transparent_comm_handler = ifaces[0].with_handler<TransparentSerialCommunicationInterfaceHandler>(sp, *this);
     transparent_data_handler = ifaces[1].with_handler<TransparentSerialDataInterfaceHandler>(sp, *this);
+    transparent_data_handler->set_tx_buffer_capacity(8*1024);
     transparent_comm_handler->set_data_handler(transparent_data_handler.get());
     transparent_data_handler->set_comm_handler(transparent_comm_handler.get());
 
@@ -105,7 +112,9 @@ std::shared_ptr<usbipdcpp::UsbDevice> WifiSerialManager::create_transparent_devi
         .ep0_in = UsbEndpoint::get_default_ep0_in(),
         .ep0_out = UsbEndpoint::get_default_ep0_out(),
     });
-    device->with_handler<SimpleVirtualDeviceHandler>(sp);
+    transparent_device_handler = device->with_handler<SimpleVirtualDeviceHandler>(sp);
+    transparent_device_handler->change_string_product(L"WiFi Serial Transparent");
+    transparent_device_handler->change_string_serial(L"WIFI-SERIAL-TRANS");
 
     return device;
 }
@@ -125,11 +134,14 @@ void WifiSerialManager::reconfigure_uart() {
     cfg.data_bits = static_cast<uart_word_length_t>(data_bits - 5);
     cfg.parity = static_cast<uart_parity_t>(parity);
     cfg.stop_bits = static_cast<uart_stop_bits_t>(stop_bits);
-    cfg.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
+    cfg.flow_ctrl = flow_control ? UART_HW_FLOWCTRL_CTS_RTS : UART_HW_FLOWCTRL_DISABLE;
     cfg.source_clk = UART_SCLK_DEFAULT;
 
     uart_param_config(uart_port, &cfg);
-    ESP_LOGI(TAG, "UART reconfigured: baud=%d", baud_rate);
+    uart_set_pin(uart_port, tx_pin, rx_pin,
+                 flow_control ? rts_pin : UART_PIN_NO_CHANGE,
+                 flow_control ? cts_pin : UART_PIN_NO_CHANGE);
+    ESP_LOGI(TAG, "UART reconfigured: baud=%d flow=%d", baud_rate, flow_control);
 }
 
 void WifiSerialManager::reconfigure_pins() {

@@ -110,7 +110,7 @@ static int thread_main() {
     usbipdcpp::Server server;
     server.set_before_thread_create_callback([](usbipdcpp::ThreadPurpose) {
         esp_pthread_cfg_t cfg = esp_pthread_get_default_config();
-        cfg.stack_size = 8 * 1024;
+        cfg.stack_size = 16 * 1024;
         esp_pthread_set_cfg(&cfg);
     });
     server.add_device(std::move(config_dev));
@@ -124,7 +124,10 @@ static int thread_main() {
     SPDLOG_INFO("Transparent serial: busid 1-2");
 
     while (true) {
-        std::this_thread::sleep_for(std::chrono::hours(1));
+        ESP_LOGI(TAG, "Free heap: %lu, min free: %lu",
+                 esp_get_free_heap_size(),
+                 esp_get_minimum_free_heap_size());
+        std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 
     server.stop();
