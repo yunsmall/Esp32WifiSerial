@@ -3,8 +3,6 @@
 #include <virtual_device/CdcAcmVirtualInterfaceHandler.h>
 #include <atomic>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
 
 namespace usbipdcpp {
     class Session;
@@ -17,8 +15,12 @@ class TransparentSerialCommunicationInterfaceHandler : public usbipdcpp::CdcAcmC
 public:
     TransparentSerialCommunicationInterfaceHandler(usbipdcpp::UsbInterface &iface, usbipdcpp::StringPool &sp, WifiSerialManager &mgr);
 
+    void on_new_connection(usbipdcpp::Session &current_session, usbipdcpp::error_code &ec) override;
+    void on_disconnection(usbipdcpp::error_code &ec) override;
     void on_set_line_coding(const usbipdcpp::LineCoding &coding) override;
     void on_set_control_line_state(const usbipdcpp::ControlSignalState &state) override;
+
+    void notify_serial_state(std::uint16_t state);  // 通知串行状态
 
     WifiSerialManager &manager;
 };
@@ -31,14 +33,8 @@ public:
     void on_new_connection(usbipdcpp::Session &current_session, usbipdcpp::error_code &ec) override;
     void on_disconnection(usbipdcpp::error_code &ec) override;
     void on_data_received(usbipdcpp::data_type &&data) override;
-    void on_rts_changed(bool rts) override;
 
     std::atomic_bool should_immediately_stop = false;
-    std::atomic_bool host_ready_to_receive = false;
     WifiSerialManager &manager;
     std::thread uart_receive_thread;
-
-private:
-    std::mutex host_rts_mutex_;
-    std::condition_variable host_rts_cv_;
 };

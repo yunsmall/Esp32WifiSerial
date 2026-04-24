@@ -175,6 +175,7 @@ void ConfigSerialDataInterfaceHandler::process_command(const char *cmd, size_t l
                 manager.cts_pin = pin;
             }
             manager.reconfigure_uart();
+            manager.reconfigure_gpio();
             SPDLOG_INFO("CTS pin set to {}", pin);
             send_data("ok\n");
         } else if (match_word(p, l, "FLOW")) {
@@ -184,20 +185,90 @@ void ConfigSerialDataInterfaceHandler::process_command(const char *cmd, size_t l
 
             {
                 std::lock_guard lock(manager.mutex);
-                manager.flow_control = (enable != 0);
+                manager.uart_hw_flow_control = (enable != 0);
             }
             manager.reconfigure_uart();
+            manager.reconfigure_gpio();
             SPDLOG_INFO("Flow control {}", enable ? "enabled" : "disabled");
+            send_data("ok\n");
+        } else if (match_word(p, l, "DTR")) {
+            p += 3; l -= 3;
+            skip_spaces(p, l);
+            pin = std::atoi(p);
+
+            if (manager.dtr_validator && !manager.dtr_validator(pin)) {
+                send_data("err\n");
+                return;
+            }
+
+            {
+                std::lock_guard lock(manager.mutex);
+                manager.dtr_pin = pin;
+            }
+            manager.reconfigure_gpio();
+            SPDLOG_INFO("DTR pin set to {}", pin);
+            send_data("ok\n");
+        } else if (match_word(p, l, "DSR")) {
+            p += 3; l -= 3;
+            skip_spaces(p, l);
+            pin = std::atoi(p);
+
+            if (manager.dsr_validator && !manager.dsr_validator(pin)) {
+                send_data("err\n");
+                return;
+            }
+
+            {
+                std::lock_guard lock(manager.mutex);
+                manager.dsr_pin = pin;
+            }
+            manager.reconfigure_gpio();
+            SPDLOG_INFO("DSR pin set to {}", pin);
+            send_data("ok\n");
+        } else if (match_word(p, l, "DCD")) {
+            p += 3; l -= 3;
+            skip_spaces(p, l);
+            pin = std::atoi(p);
+
+            if (manager.dcd_validator && !manager.dcd_validator(pin)) {
+                send_data("err\n");
+                return;
+            }
+
+            {
+                std::lock_guard lock(manager.mutex);
+                manager.dcd_pin = pin;
+            }
+            manager.reconfigure_gpio();
+            SPDLOG_INFO("DCD pin set to {}", pin);
+            send_data("ok\n");
+        } else if (match_word(p, l, "RI")) {
+            p += 2; l -= 2;
+            skip_spaces(p, l);
+            pin = std::atoi(p);
+
+            if (manager.ri_validator && !manager.ri_validator(pin)) {
+                send_data("err\n");
+                return;
+            }
+
+            {
+                std::lock_guard lock(manager.mutex);
+                manager.ri_pin = pin;
+            }
+            manager.reconfigure_gpio();
+            SPDLOG_INFO("RI pin set to {}", pin);
             send_data("ok\n");
         } else {
             send_data("err\n");
         }
     } else if (match_word(cmd, len, "GET")) {
         std::lock_guard lock(manager.mutex);
-        char resp[80];
-        int resp_len = snprintf(resp, sizeof(resp), "tx:%d rx:%d rts:%d cts:%d flow:%d\n",
+        char resp[140];
+        int resp_len = snprintf(resp, sizeof(resp), "tx:%d rx:%d rts:%d cts:%d dtr:%d dsr:%d dcd:%d ri:%d flow:%d\n",
                                 manager.tx_pin, manager.rx_pin, manager.rts_pin,
-                                manager.cts_pin, manager.flow_control ? 1 : 0);
+                                manager.cts_pin, manager.dtr_pin, manager.dsr_pin,
+                                manager.dcd_pin, manager.ri_pin, manager.uart_hw_flow_control ? 1 : 0);
         send_data(std::string_view(resp, resp_len));
     } else if (match_word(cmd, len, "HELP")) {
         send_data("commands:\n");
@@ -205,7 +276,11 @@ void ConfigSerialDataInterfaceHandler::process_command(const char *cmd, size_t l
         send_data("  set rx <pin>   - set rx pin\n");
         send_data("  set rts <pin>  - set rts pin (-1 disable)\n");
         send_data("  set cts <pin>  - set cts pin (-1 disable)\n");
-        send_data("  set flow <0|1> - enable/disable flow control\n");
+        send_data("  set dtr <pin>  - set dtr pin (-1 disable)\n");
+        send_data("  set dsr <pin>  - set dsr pin (-1 disable)\n");
+        send_data("  set dcd <pin>  - set dcd pin (-1 disable)\n");
+        send_data("  set ri <pin>   - set ri pin (-1 disable)\n");
+        send_data("  set flow <0|1> - 0: rts as gpio, 1: uart hw rts/cts\n");
         send_data("  get            - get current config\n");
         send_data("  help           - show this help\n");
     } else {
